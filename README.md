@@ -54,7 +54,7 @@ The LLM returns structured JSON data such as:
 
 ```json
 {
-  "person_name": "John Doe",
+  "person_name": "Pratik Nayak",
   "role": "CEO",
   "linkedin_url": "https://www.linkedin.com/in/..."
 }
