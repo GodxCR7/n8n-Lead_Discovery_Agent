@@ -21,16 +21,6 @@ This system can be used for sales prospecting, lead generation, and business int
 
 ---
 
-## Workflow Architecture
-
-Below is the visual representation of the n8n workflow.
-
-<p align="center">
-  <img src="Workflow2.png" width="900">
-</p>
-
----
-
 ## Workflow Logic
 
 The automation follows these steps.
