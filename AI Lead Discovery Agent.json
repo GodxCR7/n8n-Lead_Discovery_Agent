@@ -1,0 +1,452 @@
+{
+  "name": "AI Lead Discovery Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -16
+      ],
+      "id": "871ef346-994d-45dd-bc29-6651a7e803a5",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1bhbERRi_RkYR47UzqkcSeTSzfkPiV6doOmHrM4m7Gb8/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bhbERRi_RkYR47UzqkcSeTSzfkPiV6doOmHrM4m7Gb8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        304,
+        32
+      ],
+      "id": "b3de284b-13ce-4d20-b9ec-329f063916e7",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleApi": {
+          "id": "KsGODrOeu04PclpX",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e61cbf1b-d5f0-4afa-a7b0-d55a10cc9f89",
+              "name": "search_query",
+              "value": "={{ \"CEO of \" + $json[\"Company Name\"] + \" LinkedIn site:linkedin.com/in\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        -128
+      ],
+      "id": "8da825d0-34b0-4bc4-b5ca-4b295bdc2874",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{$json.search_query}}"
+            },
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "api_key",
+              "value": "c4e888d8091dbe3e35093aeb9e6f024dcc14e00dc656f727f17675bf595f08d8"
+            },
+            {
+              "name": "num",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        736,
+        -128
+      ],
+      "id": "85161a8c-160f-43a6-8ed7-61f448fcac96",
+      "name": "Google Search"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const results = item.json.organic_results || [];\n  const profiles = [];\n\n  for (const r of results) {\n    if (r.link && r.link.includes(\"linkedin.com\")) {\n      profiles.push({\n        title: r.title,\n        link: r.link,\n        snippet: r.snippet || \"\"\n      });\n    }\n  }\n\n  if (profiles.length === 0) {\n    profiles.push({ title: \"None\", link: \"Not Found\", snippet: \"\" });\n  }\n\n  output.push({\n    json: {\n      company_name: item.json.search_parameters.q,\n      profiles: profiles\n    }\n  });\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -128
+      ],
+      "id": "ca23995c-c0d7-4540-8d52-16656ba34994",
+      "name": "Extract LinkedIn Profiles"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "=You are given LinkedIn search results for a company.\n\nCompany Search Query: {{ $json.company_name }}\n\nLinkedIn Profiles Found:\n{{ JSON.stringify($json.profiles) }}\n\nPick the single best matching profile for the CEO/executive role.\nReturn ONLY valid JSON, nothing else:\n{\n  \"person_name\": \"Full Name Here\",\n  \"role\": \"Their exact title\",\n  \"linkedin_url\": \"https://www.linkedin.com/in/...\"\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1776,
+        -128
+      ],
+      "id": "0e2d404b-7366-4402-b116-353f1630e276",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Xe-BP7z0jnHIILTccQ55u3D3UGGDocHNFJNjioBO1QE/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bhbERRi_RkYR47UzqkcSeTSzfkPiV6doOmHrM4m7Gb8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{$json[\"row_number\"]}}",
+            "Status": "={{$node[\"Basic LLM Chain\"].json[\"text\"] === \"Not Found\" ? \"Not Found\" : \"Found\"}}",
+            "Role": "={{ $json.output.role }}",
+            "Company Name": "={{$json[\"Company Name\"]}}",
+            "Person Name": "={{ $json.output.person_name }}",
+            "Linkedln URL": "={{ $json.output.linkedin_url }}",
+            "output": "="
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Person Name",
+              "displayName": "Person Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Linkedln URL",
+              "displayName": "Linkedln URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output",
+              "displayName": "output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1088,
+        160
+      ],
+      "id": "f932e2f4-1673-4583-8111-6f1ee0da7312",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleApi": {
+          "id": "KsGODrOeu04PclpX",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"person_name\": {\n      \"type\": \"string\"\n    },\n    \"role\": {\n      \"type\": \"string\"\n    },\n    \"linkedin_url\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"person_name\",\n    \"role\",\n    \"linkedin_url\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1936,
+        144
+      ],
+      "id": "744941e9-becc-4759-8af7-5d12f5ae12f3",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "content": "                                                                                                                AI Lead Discovery Agent",
+        "height": 640,
+        "width": 2128,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        48,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "9efffb85-5efd-4f04-937a-545dd7998091",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        112
+      ],
+      "id": "bbe6e6f7-8681-4d6b-bf47-59c98b395136",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "model": "phi3:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        144
+      ],
+      "id": "95b9ca97-dd8b-46a0-8912-2e2cd0cc476b",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "o1bQzfSy40MfLofi",
+          "name": "Ollama account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Google Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Search": {
+      "main": [
+        [
+          {
+            "node": "Extract LinkedIn Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract LinkedIn Profiles": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        []
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "17ed3f89-cab1-4874-b5f3-cdf5cb3cd4b5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9700240794d8ff64afa051a20998ae4c25d509f815bbc22da4f5eb5b9ba63736"
+  },
+  "id": "KgfIC4ZBesUAIlhq",
+  "tags": []
+}
